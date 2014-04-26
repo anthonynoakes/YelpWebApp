@@ -1,0 +1,66 @@
+@font-face {
+	font-family: 'icomoon';
+	src:url('fonts/icomoon.eot?gp9tkh');
+	src:url('fonts/icomoon.eot?#iefixgp9tkh') format('embedded-opentype'),
+		url('fonts/icomoon.woff?gp9tkh') format('woff'),
+		url('fonts/icomoon.ttf?gp9tkh') format('truetype'),
+		url('fonts/icomoon.svg?gp9tkh#icomoon') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+    font-family: 'socicon';
+    src: url('fonts/socicon-webfont.eot');
+    src: url('fonts/socicon-webfont.eot?#iefix') format('embedded-opentype'),
+         url('fonts/socicon-webfont.woff') format('woff'),
+         url('fonts/socicon-webfont.ttf') format('truetype'),
+         url('fonts/socicon-webfont.svg#sociconregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.socicon {
+    font-family: 'socicon' !important;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+	font-family: 'icomoon';
+	speak: none;
+	font-style: normal;
+	font-weight: normal;
+	font-variant: normal;
+	text-transform: none;
+	line-height: 1;
+
+	/* Better Font Rendering =========== */
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.icon-menu:before {
+	content: "\e600";
+}
+
+.spinner {
+      width: 20px;
+      height: 20px;
+      background-color: #CC333F;
+	  border: 1px;
+	  border-radius: 10px;
+      margin: 10px;
+      float: left;
+      -webkit-animation: rotateplane 2s infinite ease-in-out;
+      animation: rotateplane 2s  infinite ease-in-out;
+    }
+ 
+.spinner:nth-child(1) { -webkit-animation: changecolor 2s infinite ease-in-out; animation: changecolor 2s  infinite ease-in-out; }
+.spinner:nth-child(2) { -webkit-animation: changecolor 2s .5s infinite ease-in-out; animation: changecolor 2s .5s infinite ease-in-out; }
+.spinner:nth-child(3) { -webkit-animation: changecolor 2s 1s infinite ease-in-out; animation: changecolor 2s 1s infinite ease-in-out; }
+.spinner:nth-child(4) { -webkit-animation: changecolor 2s 1.5s infinite ease-in-out; animation: changecolor 2s 1.5s infinite ease-in-out; }
+
+@-webkit-keyframes changecolor {
+     0% {-webkit-transform: perspective(100px); }    
+    50% { background-color: #000; -webkit-transform: perspective(100px) rotateY(180deg)}
+    100% { -webkit-transform: perspective(100px) rotateY(180deg)  rotateX(180deg) }	    
+}

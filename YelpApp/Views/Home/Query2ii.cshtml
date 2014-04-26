@@ -1,0 +1,571 @@
+﻿@model DotNet.Highcharts.Highcharts
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="menu">
+    <span class="icon-menu"></span>
+    <div id="dropDownMenu">
+        <div class="pure-menu">
+            <a class="pure-menu-heading">Required</a>
+            <ul>
+                <li><a href="@Url.Action("Index", "Home")">Query 1</a></li>
+                <li><a href="@Url.Action("Query2i", "Home")">Query 2 i</a></li>
+                <li><a href="@Url.Action("Query2ii", "Home")"><strong>Query 2 ii</strong></a></li>
+                <li class="pure-menu-heading">Trivial Queries</li>
+                <li><a href="@Url.Action("Query3", "Home")">Query 3</a></li>
+                <li><a href="@Url.Action("Query4", "Home")">Query 4</a></li>
+                <li><a href="@Url.Action("Query5", "Home")">Query 5</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div id="page_container">
+
+    <div id="header" class="">
+        Yelp Charts  <span class="socicon">h</span>
+        <div style="font-size: 20px;">dream team</div>
+    </div>
+    <div id="info_container">
+        <div id="chart_container" class="shadoweffect">
+            @(Model)
+        </div>
+        <div id="business_container" class="shadoweffect">
+            <div class="ribbon-wrapper"></div>
+            <h1 id="businessName"></h1>
+            <div id="businessStars"></div>
+            <div id="businessNormStars"></div>
+            <div id="businessMilesAway"></div>
+            <ul id="categoryList"></ul>
+            <table id="hours">
+                <tr><td><strong>DAY</strong></td><td>open</td><td>close</td></tr>
+                <tr><td><strong>Monday</strong></td><td></td><td></td></tr>
+                <tr><td><strong>Tuesday</strong></td><td></td><td></td></tr>
+                <tr><td><strong>Wednseday</strong></td><td></td><td></td></tr>
+                <tr><td><strong>Thursday</strong></td><td></td><td></td></tr>
+                <tr><td><strong>Friday</strong></td><td></td><td></td></tr>
+                <tr><td><strong>Saturday</strong></td><td></td><td></td></tr>
+                <tr><td><strong>Sunday</strong></td><td></td><td></td></tr>
+            </table>
+        </div>
+    </div>
+    <div id="chart_controls" class="shadoweffect">
+        <h2> Chart Controls </h2>
+        <table id="stars_table">
+            <!--<input type="email" placeholder="Email">-->
+            <tr>
+                <td><strong>Improvement</strong></td>
+                <td><div id="diff_slider"></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Min</td>
+                <td><strong>Star Span</strong></td>
+                <td>Max</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><div id="star_slider"></div></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Begin</td>
+                <td><strong>Month/Year Spread</strong></td>
+                <td>End</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><div id="date_slider"></div></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><div id="year_slider"></div></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+    <div id="review_container" class="shadoweffect">
+        loading Horizontal scoll reviews
+        Dragable bars
+        <button id="prevBtn" class="pure-button" onclick="graphButton(-1)"> <i class="fa fa-arrow-left"></i> prev </button>
+        <div id="pageIdex" class="pure-button">Page 1</div>
+        <button id="nextBtn" class="pure-button" onclick="graphButton(1)"> next <i class="fa fa-arrow-right"></i> </button>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    /********* page globals **********/
+
+    // Globals like this are horrible but if i have time ill modify it
+    // so that everything lives under a single global container {including functions}
+    // damn you single namespace
+
+    // Graph Data from ajax calls
+    // look to get this data from wrapper
+    var jsChartData;
+    var hoursData;
+    var g_business = new _business();
+
+    // Query
+    var g_offset = 0;
+
+    // Menu
+    var menu_toggle = false;
+
+    // Sliders
+    var star_diff;
+    var stars_lower;
+    var stars_upper;    
+    var date_lower;
+    var date_upper;
+    var year_lower;
+    var year_upper;
+
+    var month = new Array();
+    month[0] = "January";
+    month[1] = "February";
+    month[2] = "March";
+    month[3] = "April";
+    month[4] = "May";
+    month[5] = "June";
+    month[6] = "July";
+    month[7] = "August";
+    month[8] = "September";
+    month[9] = "October";
+    month[10] = "November";
+    month[11] = "December";
+
+    var fa_star = "<i class=\"fa fa-star\"></i>";
+    var fa_star_half = "<i class=\"fa fa-star-half\"></i>";
+    /********* end page globals **********/
+
+    $(document).ready(function () {
+        console.log(chart);
+        $('#chart_container').append("<button id=\"prevBtn\" class=\"pure-button\" onclick=\"graphButton(-1)\"> <i class=\"fa fa-arrow-left\"></i> prev </button>"
+                                    + "<div id=\"pageIdex\" class=\"pure-button\">Page 1</div>"
+                                    + "<button id=\"nextBtn\" class=\"pure-button\" onclick=\"graphButton(1)\"> next <i class=\"fa fa-arrow-right\"></i> </button>");
+
+        $('#menu').click(function () { menuDropDown(); })
+
+        // watch for enter
+        $("#categoryInput").keyup(function (e) {
+            if (e.keyCode == 13) {
+                category = $("#categoryInput").val();
+                chart.setTitle({ text: category + " Businesses" });
+                g_offset = 0; //reset offset
+                refresh();
+            }
+        });
+
+        initSliders();
+
+        getQuery2ii();
+    });
+    var Link = new $.noUiSlider.Link({
+        target: function (val) {
+            alert(val)
+        }
+    });
+
+    function graphButton(relation)
+    {
+        g_offset += relation;
+
+        if (g_offset < 1)
+            g_offset = 0;
+
+        refresh();
+    }
+
+    function refresh()
+    {
+        $('#pageIdex').text('Page ' + (g_offset+1));
+        getQuery2ii();
+    }
+
+    function initSliders() {
+        $('#diff_slider').noUiSlider({
+            start: .5,
+            step: 0.5,
+            direction: 'ltr',
+            connect: 'lower',
+            range: {
+                'min': .5,
+                'max': 4.5
+            },
+            serialization: {
+                lower: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            star_diff = val;
+                            $("#stars_table tr:eq(0) td:eq(2)").empty().append(starString(star_diff))
+                        }
+                    })
+                ],
+            }
+        });
+
+        $("#star_slider").noUiSlider({
+            start: [1, 5],
+            step: 0.5,
+            margin: 0,
+            direction: 'ltr',
+            connect: true,
+            range: {
+                'min': 1,
+                'max': 5
+            },
+            serialization: {
+                lower: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            stars_lower = val;
+                            $("#stars_table tr:eq(2) td:eq(0)").empty().append(starString(stars_lower))
+                        }
+                    })
+                ],
+                upper: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            stars_upper = val;
+                            $("#stars_table tr:eq(2) td:eq(2)").empty().append(starString(stars_upper))
+                        }
+                    })
+                ]
+            }
+        });
+
+        $("#date_slider").noUiSlider({
+            start: [0, 11],
+            step: 1,
+            margin: 0,
+            direction: 'ltr',
+            connect: true,
+            range: {
+                'min': 0, 
+                'max': 11 
+            },
+            serialization: {
+                lower: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            date_lower = Math.floor(val);
+                           $("#stars_table tr:eq(4) td:eq(0)").empty().append(month[date_lower])
+                        }
+                    })
+                ],
+                upper: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            date_upper = Math.floor(val);
+                            $("#stars_table tr:eq(4) td:eq(2)").empty().append(month[date_upper])
+                        }
+                    })
+                ]
+            }
+        });
+
+        $("#year_slider").noUiSlider({
+            start: [2010, 2011],
+            step: 1,
+            margin: 0,
+            direction: 'ltr',
+            connect: true,
+            range: {
+                'min': 2004,
+                'max': 2015
+            },
+            serialization: {
+                lower: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            year_lower = Math.floor(val);
+                            $("#stars_table tr:eq(5) td:eq(0)").empty().append(year_lower)
+                        }
+                    })
+                ],
+                upper: [
+                    new $.noUiSlider.Link({
+                        target: function (val) {
+                            year_upper = Math.floor(val);
+                            $("#stars_table tr:eq(5) td:eq(2)").empty().append(year_upper)
+                        }
+                    })
+                ]
+            }
+        });
+
+        $("#diff_slider").mouseup(function () {
+            g_offset = 0;
+            refresh()
+        });
+
+        $("#star_slider").mouseup(function () {
+            g_offset = 0;
+            refresh()
+        });
+
+        $("#date_slider").mouseup(function () {
+            g_offset = 0;
+            refresh()
+        });
+        $("#year_slider").mouseup(function () {
+            g_offset = 0;
+            refresh()
+        });
+    }
+
+    function menuDropDown() {
+        //TODO: work on hidden aspect for dropdown menu
+        if (menu_toggle)
+            $('.pure-menu').css("overflow", "hidden").removeClass('pure-menu-open');
+        else
+            $('.pure-menu').css("overflow", "visible").addClass('pure-menu-open')
+
+        //toggle menu flag
+        menu_toggle ^= true;
+    }
+
+    function starString(count)
+    {
+        var result = ""
+        while (count >= 1) {
+            result += fa_star;
+            count--;
+        }
+        if (count > 0)
+            result += fa_star_half;
+
+        return result;
+    }
+
+    function toolTip(point) {
+        //i.business_id,
+        //i.name,
+        //i.stars,
+        //i.january_average,
+        //i.december_average
+        return returnString = '<b>' + jsChartData[point.x][1] + '</b>'
+                           + '<br/>' + starString(jsChartData[point.x][2])
+                           + '<br/>January:' + starString(jsChartData[point.x][3])
+                           + '<br/>December:' + starString(jsChartData[point.x][4])
+    }
+
+    function toolTipClick(point) {
+        //update chart
+        updateFocus(point);
+
+        //load business info
+        loadBusiness(point);
+    }
+
+    function loadBusiness(index)
+    {
+        //Update global business checker
+        g_business.bid = jsChartData[index][0];
+        g_business.name = jsChartData[index][1];
+        g_business.stars = jsChartData[index][2];
+        g_business.norm_stars = jsChartData[index][3];
+        g_business.distance = jsChartData[index][4];
+
+        //set Info
+        $("#businessName").text(g_business.name);
+        $("#businessStars").text("Average Rating: ").append(starString(g_business.stars));
+        $("#businessNormStars").text("Normalized Rating: ").append(starString(g_business.norm_stars));
+        $("#businessMilesAway").text("Distance away: " + g_business.distance + " miles");
+
+        //$("#categoryList").empty()
+        //$("#categoryList").append();
+        //        <li>yoga</li>
+        //    </ul>
+
+        //check hours
+        checkOpen(g_business.bid);
+
+        //get comments
+        //getReviews(g_business.bd);
+    }
+
+    //Clear all series from chart
+    function clearChart()
+    {
+        while (chart.series.length > 0)
+            chart.series[0].remove(true);
+    }
+
+    function getQuery2ii() {
+        $.ajax({
+            type: "Get",
+            url: "@Url.Action("apiGetQuery2ii", "Home")",
+            //double diff, double stars, int start_month, int stop_month, int start_year, int stop_year, int offset
+            data: { diff: (star_diff - .5), stars: stars_lower, start_month: date_lower+1, stop_month: date_upper+1, start_year: year_lower, stop_year: year_upper, offset: (g_offset * 30) },
+            success: function (data) {
+                clearChart();
+                //covert string to JSON object for parse
+                jsChartData = jQuery.parseJSON(data);
+                chart.addSeries({
+                    name: "January",
+                    data:
+                        jsChartData.series1,
+                        events: {
+                            click: function (e) {
+                                for(var i = 0; i < chart.series[0].data.length; i++)
+                                {
+                                    if(chart.series[0].data[i].pageX > (e.pageX - ((900/chart.series[0].data.length)/4)) &&
+                                        chart.series[0].data[i].pageX < (e.pageX + ((900/chart.series[0].data.length)/4)))
+                                    {
+                                        toolTipClick(i);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                });
+                chart.addSeries({
+                    name: "Decemeber",
+                    data:
+                        jsChartData.series2,
+                    events: {
+                        click: function (e) {
+                            for(var i = 0; i < chart.series[0].data.length; i++)
+                            {
+                                if(chart.series[0].data[i].pageX > (e.pageX - ((900/chart.series[0].data.length)/4)) &&
+                                    chart.series[0].data[i].pageX < (e.pageX + ((900/chart.series[0].data.length)/4)))
+                                {
+                                    toolTipClick(i);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+                jsChartData = jsChartData.data;
+            }
+        });
+    }
+
+    function updateFocus(index) {
+        for(var i = 0; i< chart.series[0].data.length; i++){
+            chart.series[0].data[i].update({
+                marker: {
+                    fillColor: '#2f7ed8',
+                    states: {
+                        hover: {
+                            fillColor: '#2f7ed8',
+                            lineColor: '#2f7ed8'
+                        }
+                    }
+                }
+            });
+            chart.series[1].data[i].update({
+                marker: {
+                    fillColor: '#2f7ed8',
+                    states: {
+                        hover: {
+                            fillColor: '#2f7ed8',
+                            lineColor: '#2f7ed8'
+                        }
+                    }
+                }
+            });
+        }
+        chart.series[0].data[index].update({
+            marker: {
+                fillColor: '#d82f7e',
+                states: {
+                    hover: {
+                        fillColor: '#d82f7e',
+                        lineColor: '#d82f7e'
+                    }
+                }
+            }
+        });
+        chart.series[1].data[index].update({
+            marker: {
+                fillColor: '#d82f7e',
+                states: {
+                    hover: {
+                        fillColor: '#d82f7e',
+                        lineColor: '#d82f7e'
+                    }
+                }
+            }
+        });
+    }
+
+    function timeString(time)
+    {
+        if (time > 12) {
+            time %= 12;
+            time += " pm";
+        }
+        else {
+            time += " am";
+        }
+        return time;
+    }
+
+    function checkOpen(bid) {
+        $.ajax({
+            type: "Get",
+            url: "@Url.Action("apiCheckOpen", "Home")",
+            data: { business_id: bid },
+            success: function (data) {
+                hoursData = jQuery.parseJSON(data);
+                if (hoursData.open == "true") {
+                    $('.ribbon-wrapper').empty();
+                    $('.ribbon-wrapper').append("<div class='ribbon-green'>OPEN</div>");
+                }
+                else {
+                    $('.ribbon-wrapper').empty();
+                    $('.ribbon-wrapper').append("<div class='ribbon-red'>CLOSED</div>");
+                }
+
+                // empty table hours
+                for (var i = 0; i < hoursData.hours.length; i++)
+                {
+                    var row = ((hoursData.hours[i].day_number - 2) % 7) + 2;
+                    $("#hours tr:eq(" + row
+                        + ") td:eq(1)").text(timeString(hoursData.hours[0].open));
+                    $("#hours tr:eq(" + row
+                        + ") td:eq(2)").text(timeString(hoursData.hours[0].close));
+                }
+            }
+        });
+    }
+
+    //getComments(g_business.bd)
+    function getReviews(bid) {
+        $.ajax({
+            type: "Get",
+            url: "@Url.Action("apiGetReviews", "Home")",
+            data: { business_id: bid},
+            success: function (data) {
+                if (data == "true"){
+                    //alert("open");
+                    $('ribbon-wrapper').append("<div class=\"ribbon-green\">OPEN</div>");
+                }
+                else{
+                    //alert("close");
+                    $('ribbon-wrapper').append("<div class=\"ribbon-red\">CLOSED</div>");
+                }
+            }
+        });
+    }
+
+    function _business() {
+        this.bid;
+        this.name;
+        this.stars;
+        this.norm_stars;
+        this.distance;
+        this.hours = [];
+    }
+
+</script>
+
+
+
